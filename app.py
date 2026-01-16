@@ -66,8 +66,8 @@ class SentimentEngine:
 
 @app.route('/')
 def index():
-    """Initial route to render the dashboard skeleton."""
-    return "Hello World"
+    """Renders the dashboard UI."""
+    return render_template('index.html')
 
 @app.route('/analyze', methods=['POST'])
 def analyze_endpoint():
