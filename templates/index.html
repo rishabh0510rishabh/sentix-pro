@@ -6,7 +6,6 @@
     <title>Sentix // AI Sentiment Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Tailwind configuration for custom dark mode colors
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -20,15 +19,24 @@
         }
     </script>
     <style>
-        /* Smooth transition for theme switching */
         .theme-transition {
             transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        .hidden-result {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .show-result {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-darkPrimary min-h-screen theme-transition font-sans text-slate-900 dark:text-slate-100">
 
-    <!-- Navigation -->
     <nav class="max-w-6xl mx-auto px-6 py-6 flex justify-between items-center">
         <div class="flex items-center gap-2">
             <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
@@ -42,7 +50,6 @@
         </button>
     </nav>
 
-    <!-- Main Content -->
     <main class="max-w-4xl mx-auto px-6 py-12">
         <header class="mb-12 text-center md:text-left">
             <h2 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
@@ -63,51 +70,117 @@
                 <div class="flex items-center gap-4 text-sm font-semibold text-slate-400">
                     <span id="char-counter">0</span> / 5000 characters
                 </div>
-                <button id="analyze-btn" class="w-full md:w-auto px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/30 transition-all hover:-translate-y-1 active:translate-y-0">
-                    Run Analysis
+                <button id="analyze-btn" class="w-full md:w-auto px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/30 transition-all hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2">
+                    <span id="btn-text">Run Analysis</span>
+                    <div id="loader" class="hidden w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 </button>
             </div>
         </div>
 
-        <!-- Placeholder for Results (Phase 5+) -->
-        <div id="result-placeholder" class="mt-12 text-center text-slate-400 italic text-sm">
-            Results will appear here after analysis.
+        <!-- Result Container (Initially hidden) -->
+        <div id="result-card" class="hidden-result mt-12 bg-white dark:bg-darkCard p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Result Category</p>
+                    <h3 id="res-category" class="text-3xl font-black">---</h3>
+                </div>
+                <div id="res-indicator" class="w-4 h-4 rounded-full mt-2"></div>
+            </div>
+            
+            <p id="lang-warning" class="hidden text-amber-500 text-sm font-semibold mb-4 italic">
+                ⚠️ Non-English text detected. Accuracy may vary.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50">
+                    <p class="text-slate-400 text-xs font-bold uppercase mb-2">Polarity Score</p>
+                    <span id="res-polarity" class="text-2xl font-mono font-bold">0.00</span>
+                </div>
+                <div class="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50">
+                    <p class="text-slate-400 text-xs font-bold uppercase mb-2">Subjectivity</p>
+                    <span id="res-subjectivity" class="text-2xl font-mono font-bold">0.00</span>
+                </div>
+            </div>
         </div>
     </main>
 
     <script>
-        // 1. Theme Toggle Logic
+        // Theme Toggle Logic
         const themeToggle = document.getElementById('theme-toggle');
         const themeIcon = document.getElementById('theme-icon');
         const html = document.documentElement;
 
         themeToggle.addEventListener('click', () => {
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                html.classList.add('light');
-                themeIcon.innerText = '🌙';
-            } else {
-                html.classList.remove('light');
-                html.classList.add('dark');
-                themeIcon.innerText = '☀️';
-            }
+            html.classList.toggle('dark');
+            themeIcon.innerText = html.classList.contains('dark') ? '☀️' : '🌙';
         });
 
-        // 2. Character Counter Logic
+        // Character Counter Logic
         const textInput = document.getElementById('text-input');
         const charCounter = document.getElementById('char-counter');
-
         textInput.addEventListener('input', () => {
-            const length = textInput.value.length;
-            charCounter.innerText = length;
-            
-            // Visual feedback when approaching limit
-            if (length >= 4500) {
-                charCounter.classList.add('text-amber-500');
-            } else {
-                charCounter.classList.remove('text-amber-500');
-            }
+            charCounter.innerText = textInput.value.length;
         });
+
+        // Day 4: AJAX Bridge Logic
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const btnText = document.getElementById('btn-text');
+        const loader = document.getElementById('loader');
+        const resultCard = document.getElementById('result-card');
+
+        async function performAnalysis() {
+            const text = textInput.value.trim();
+            if (!text) {
+                alert("Please enter some text first.");
+                return;
+            }
+
+            // UI State: Loading
+            btnText.innerText = "Analyzing...";
+            loader.classList.remove('hidden');
+            analyzeBtn.disabled = true;
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) throw new Error("Network response was not ok");
+                
+                const data = await response.json();
+
+                // Update UI with Results
+                document.getElementById('res-category').innerText = data.category;
+                document.getElementById('res-polarity').innerText = data.score;
+                document.getElementById('res-subjectivity').innerText = data.subjectivity;
+                
+                // Handle Language Warning
+                const warning = document.getElementById('lang-warning');
+                data.is_english ? warning.classList.add('hidden') : warning.classList.remove('hidden');
+
+                // Update Visual Indicator Color
+                const indicator = document.getElementById('res-indicator');
+                const colors = { green: 'bg-green-500', red: 'bg-red-500', gray: 'bg-slate-400' };
+                indicator.className = `w-4 h-4 rounded-full mt-2 ${colors[data.color]}`;
+
+                // Reveal Result Card
+                resultCard.classList.add('show-result');
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Something went wrong with the analysis.");
+            } finally {
+                // UI State: Reset
+                btnText.innerText = "Run Analysis";
+                loader.classList.add('hidden');
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        analyzeBtn.addEventListener('click', performAnalysis);
     </script>
 </body>
 </html>
