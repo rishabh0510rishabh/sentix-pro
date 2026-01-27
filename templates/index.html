@@ -33,6 +33,43 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* Day 5: Gauge Styles */
+        .gauge-container {
+            width: 240px;
+            height: 120px;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        .needle { 
+            width: 4px; 
+            height: 100px; 
+            background: #1e293b; 
+            position: absolute; 
+            bottom: 0; 
+            left: 50%; 
+            transform-origin: bottom center; 
+            /* Start centered at 0 degrees */
+            transform: translateX(-50%) rotate(0deg); 
+            transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 10;
+        }
+        .dark .needle { background: #f8fafc; }
+
+        .gauge-center {
+            width: 12px;
+            height: 12px;
+            background: #3b82f6;
+            border-radius: 50%;
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            border: 2px solid white;
+        }
+        .dark .gauge-center { border-color: #1e293b; }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-darkPrimary min-h-screen theme-transition font-sans text-slate-900 dark:text-slate-100">
@@ -52,18 +89,18 @@
 
     <main class="max-w-4xl mx-auto px-6 py-12">
         <header class="mb-12 text-center md:text-left">
-            <h2 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-                What's the <span class="text-blue-600">feeling</span> today?
+            <h2 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 italic">
+                Analyze the <span class="text-blue-600 underline">atmosphere</span>.
             </h2>
             <p class="text-slate-500 dark:text-slate-400 text-lg">
-                Enter your text below to analyze sentiment and subjectivity in real-time.
+                Enter your text below to see a visual breakdown of emotion and bias.
             </p>
         </header>
 
         <!-- Input Section -->
         <div class="bg-white dark:bg-darkCard p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none transition-all">
             <textarea id="text-input" rows="8" maxlength="5000"
-                class="w-full bg-transparent border-0 focus:ring-0 text-xl placeholder-slate-300 dark:placeholder-slate-600 resize-none mb-6"
+                class="w-full bg-transparent border-0 focus:ring-0 text-xl placeholder-slate-300 dark:placeholder-slate-600 resize-none mb-6 font-medium"
                 placeholder="Paste your thoughts or drag a .txt file here..."></textarea>
             
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
@@ -77,30 +114,59 @@
             </div>
         </div>
 
-        <!-- Result Container (Initially hidden) -->
-        <div id="result-card" class="hidden-result mt-12 bg-white dark:bg-darkCard p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl">
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Result Category</p>
-                    <h3 id="res-category" class="text-3xl font-black">---</h3>
-                </div>
-                <div id="res-indicator" class="w-4 h-4 rounded-full mt-2"></div>
-            </div>
+        <!-- Result Container -->
+        <div id="result-card" class="hidden-result mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            <p id="lang-warning" class="hidden text-amber-500 text-sm font-semibold mb-4 italic">
-                ⚠️ Non-English text detected. Accuracy may vary.
-            </p>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50">
-                    <p class="text-slate-400 text-xs font-bold uppercase mb-2">Polarity Score</p>
-                    <span id="res-polarity" class="text-2xl font-mono font-bold">0.00</span>
+            <!-- Left: Sentiment Data -->
+            <div class="bg-white dark:bg-darkCard p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl">
+                <div class="flex justify-between items-start mb-10">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Result Category</p>
+                        <h3 id="res-category" class="text-5xl font-black italic">---</h3>
+                    </div>
+                    <div id="res-indicator" class="w-4 h-4 rounded-full mt-4"></div>
                 </div>
-                <div class="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50">
-                    <p class="text-slate-400 text-xs font-bold uppercase mb-2">Subjectivity</p>
-                    <span id="res-subjectivity" class="text-2xl font-mono font-bold">0.00</span>
+                
+                <p id="lang-warning" class="hidden p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-xl mb-6 border border-amber-100 dark:border-amber-800/50 italic">
+                    ⚠️ Non-English text detected. Accuracy may vary.
+                </p>
+
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                        <span class="text-slate-400 text-xs font-bold uppercase">Polarity Score</span>
+                        <span id="res-polarity" class="text-2xl font-mono font-bold">0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                        <span class="text-slate-400 text-xs font-bold uppercase">Subjectivity</span>
+                        <span id="res-subjectivity" class="text-2xl font-mono font-bold">0.00</span>
+                    </div>
                 </div>
             </div>
+
+            <!-- Right: Visual Gauge -->
+            <div class="bg-white dark:bg-darkCard p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col items-center justify-center">
+                <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-8">Polarity Gauge</p>
+                
+                <div class="gauge-container">
+                    <svg viewBox="0 0 100 50" class="w-full">
+                        <!-- Background Track -->
+                        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#f1f5f9" stroke-width="10" class="dark:stroke-slate-800"/>
+                        <!-- Negative Zone (Red) -->
+                        <path d="M 10 50 A 40 40 0 0 1 35 15" fill="none" stroke="#ef4444" stroke-width="10" stroke-linecap="round"/>
+                        <!-- Positive Zone (Green) -->
+                        <path d="M 65 15 A 40 40 0 0 1 90 50" fill="none" stroke="#22c55e" stroke-width="10" stroke-linecap="round"/>
+                    </svg>
+                    <div id="needle" class="needle"></div>
+                    <div class="gauge-center"></div>
+                </div>
+
+                <div class="flex justify-between w-full max-w-[200px] mt-2 text-[10px] font-bold uppercase text-slate-400 tracking-tighter">
+                    <span>Negative</span>
+                    <span>Neutral</span>
+                    <span>Positive</span>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -122,18 +188,16 @@
             charCounter.innerText = textInput.value.length;
         });
 
-        // Day 4: AJAX Bridge Logic
+        // Day 4 & 5: AJAX + Gauge Logic
         const analyzeBtn = document.getElementById('analyze-btn');
         const btnText = document.getElementById('btn-text');
         const loader = document.getElementById('loader');
         const resultCard = document.getElementById('result-card');
+        const needle = document.getElementById('needle');
 
         async function performAnalysis() {
             const text = textInput.value.trim();
-            if (!text) {
-                alert("Please enter some text first.");
-                return;
-            }
+            if (!text) return;
 
             // UI State: Loading
             btnText.innerText = "Analyzing...";
@@ -147,33 +211,31 @@
                     body: JSON.stringify({ text: text })
                 });
 
-                if (!response.ok) throw new Error("Network response was not ok");
-                
                 const data = await response.json();
 
-                // Update UI with Results
+                // 1. Update Text Results
                 document.getElementById('res-category').innerText = data.category;
-                document.getElementById('res-polarity').innerText = data.score;
-                document.getElementById('res-subjectivity').innerText = data.subjectivity;
+                document.getElementById('res-polarity').innerText = data.score.toFixed(2);
+                document.getElementById('res-subjectivity').innerText = (data.subjectivity * 100).toFixed(0) + "%";
                 
-                // Handle Language Warning
+                // 2. Handle Warning
                 const warning = document.getElementById('lang-warning');
                 data.is_english ? warning.classList.add('hidden') : warning.classList.remove('hidden');
 
-                // Update Visual Indicator Color
+                // 3. Update Indicator Color
                 const indicator = document.getElementById('res-indicator');
                 const colors = { green: 'bg-green-500', red: 'bg-red-500', gray: 'bg-slate-400' };
-                indicator.className = `w-4 h-4 rounded-full mt-2 ${colors[data.color]}`;
+                indicator.className = `w-4 h-4 rounded-full mt-4 ${colors[data.color]}`;
 
-                // Reveal Result Card
+                // 4. Reveal Card & Rotate Needle
                 resultCard.classList.add('show-result');
+                needle.style.transform = `translateX(-50%) rotate(${data.rotation}deg)`;
+
                 resultCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
             } catch (error) {
                 console.error("Error:", error);
-                alert("Something went wrong with the analysis.");
             } finally {
-                // UI State: Reset
                 btnText.innerText = "Run Analysis";
                 loader.classList.add('hidden');
                 analyzeBtn.disabled = false;
